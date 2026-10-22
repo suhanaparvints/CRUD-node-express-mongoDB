@@ -1,6 +1,6 @@
 # CRUD Node, Express, and MongoDB API
 
-A REST API for registering, logging in, and managing users with Node.js, Express, and MongoDB.
+A user management REST API built with Node.js, Express, and MongoDB, featuring account registration, JWT-based login, and endpoints to manage user records.
 
 ## Features
 
