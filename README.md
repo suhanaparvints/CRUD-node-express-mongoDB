@@ -1,4 +1,4 @@
-# CRUD Node.js API
+# CRUD Node, Express, and MongooDB API
 
 A lightweight REST API for registering and logging in users and managing user records with Node.js, Express, and MongoDB's official Node.js driver. This project uses **plain MongoDB queries**—it does not use Mongoose.
 
