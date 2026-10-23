@@ -1,22 +1,19 @@
-import { v7 as uuidV7 } from "uuid";
+import { v7 as uuidv7 } from "uuid";
 import bcrypt from "bcrypt";
 import { getDB } from "../config/db.js";
 import collection from "../config/collection.js";
 import jwt from "jsonwebtoken";
 
 export const adminLogin = async (req, res) => {
-  console.log("adminLogin Function Called");
   try {
     const { username, password } = req.body;
-    // console.log(username,password);
-
     if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
       return res.status(200).json({
         status: "OK",
-        message: "adminLogin Success",
+        message: "Login successfully",
       });
     } else {
-      throw new Error("Invalid username or password");
+      throw new Error("invalid username or password");
     }
   } catch (error) {
     res.status(400).json({
@@ -27,97 +24,79 @@ export const adminLogin = async (req, res) => {
 };
 
 export const registerUser = async (req, res) => {
-  console.log("registerUser Function Called");
   try {
-    const { name, age, address, email, password,role } = req.body;
-    // console.log(name,age,address,email,password);
-
+    const { name, age, email, address, password, role } = req.body;
     if (!name || !email || !password) {
-      throw new Error("name, email, and password fields are required");
+      throw new Error("give valid name,password, email ");
     }
-
-    //uuid created
-    const userId = uuidV7();
-    console.log({ userId });
-
-    //password hashed
+    const userId = uuidv7();
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log({ hashedPassword });
-
     const userData = {
       userId,
       name,
       age,
       address,
       email,
-      password: hashedPassword,
       role,
+      password: hashedPassword,
       createdAt: new Date(),
-      updateAt: new Date(),
+      updatedAt: new Date(),
     };
 
-    // console.log("user",userData);
-    // console.log("database",getDB());
-
     const result = await getDB().collection(collection.USERS_COLLECTION).insertOne(userData);
+    console.log("result>>>", result);
 
     res.status(200).json({
-      status: "OK",
-      message: "registerUser Success",
-      data: result,
+      status: "ok",
+      message: "successfully registered",
     });
   } catch (error) {
     res.status(400).json({
-      status: "ERROR",
+      status: "error",
       message: error.message,
     });
   }
 };
 
 export const userLogin = async (req, res) => {
-  console.log("userLogin Function Called");
-  console.log("req.body>>>", req.body);
   try {
     const { email, password } = req.body;
-    // console.log(username,password);
-
     const user = await getDB().collection(collection.USERS_COLLECTION).findOne({ email });
-    console.log("user>>", user);
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error("user not found");
     }
 
-    const isPasswordMatch = await bcrypt.compare(req.body.password, user.password);
-    console.log("isPasswordMatch", isPasswordMatch);
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
-      throw new Error("Invalid Password");
+      throw new Error("invalid password");
     }
 
     const token = jwt.sign(
       {
         id: user.userId,
-        name: user.name,
         email: user.email,
-        role: "Admin",
+        name: user.name,
+        role: "Admin", // just adding role manually
       },
       process.env.JWT_SECRET,
       {
         expiresIn: "1d",
       },
     );
-    console.log("token>>", token);
+
+    console.log("token>>> 🪙 ", token);
 
     res.status(200).json({
       status: "OK",
-      message: "userLogin Successful",
+      message: "login successfully",
       token: token,
     });
   } catch (error) {
-    console.log("error", error.message);
+    console.log("error>>>", error);
     res.status(400).json({
-      status: "ERROR",
+      status: "error",
       message: error.message,
     });
   }

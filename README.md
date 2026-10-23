@@ -1,149 +1,312 @@
-# CRUD Node, Express, and MongoDB API
+# CRUD Node.js API
 
-A REST API for registering users and managing user records, built with Node.js, Express, and MongoDB. Passwords are hashed with bcrypt before storage.
+A lightweight REST API for registering and logging in users and managing user records with Node.js, Express, and MongoDB's official Node.js driver. This project uses **plain MongoDB queries**—it does not use Mongoose.
 
-## Features
+## Overview
 
 - User registration with Joi validation and bcrypt password hashing
-- Login with JSON Web Token (JWT) authentication
-- User listing, name updates, full replacement, and deletion
-- MongoDB access using the official Node.js driver
+- User login with JWT generation
+- Admin credential check using environment variables
+- User and admin route groups
+- MongoDB CRUD operations
+- CORS, Helmet security headers, and Morgan request logging
 
-## Requirements
+## Tech stack
 
-- Node.js and npm
-- A running MongoDB instance
-
-## Getting started
-
-1. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-2. Create a `.env` file in the project root:
-
-   ```dotenv
-   PORT=3000
-   MONGODB_URI=mongodb://127.0.0.1:27017
-   DATABASE=your_database_name
-   JWT_SECRET=use_a_long_random_secret
-   ```
-
-3. Start the development server:
-
-   ```bash
-   npm run dev
-   ```
-
-   For a regular start, run `npm start`. The API uses port `3000` unless `PORT` is set.
-
-## API endpoints
-
-All endpoints accept and return JSON where applicable. Use the MongoDB document `_id` for `:id` paths. Send the login token in the `Authorization` header as a Bearer token on protected routes.
-
-| Method   | Endpoint             | Description              | Access      |
-| -------- | -------------------- | ------------------------ | ----------- |
-| `GET`    | `/health`            | Check server status      | Public      |
-| `POST`   | `/api/auth/register` | Register a user          | Public      |
-| `POST`   | `/api/auth/login`    | Log in and receive a JWT | Public      |
-| `GET`    | `/api/users`         | List users               | Admin token |
-| `PATCH`  | `/api/users/:id`     | Update a user's name     | Valid JWT   |
-| `PUT`    | `/api/users/:id`     | Replace a user's details | Admin token |
-| `DELETE` | `/api/users/:id`     | Delete a user            | Admin token |
-
-### Register
-
-`POST /api/auth/register`
-
-Required fields: `name`, `email`, and `password`. `age`, `address`, and `role` are optional.
-
-```json
-{
-  "name": "Alex Morgan",
-  "email": "alex@example.com",
-  "password": "StrongPass1!",
-  "age": 30,
-  "address": "123 Main Street",
-  "role": "user"
-}
-```
-
-Passwords must be 6–128 characters and contain uppercase and lowercase letters, a number, and a special character.
-
-### Log in
-
-`POST /api/auth/login`
-
-```json
-{
-  "email": "alex@example.com",
-  "password": "StrongPass1!"
-}
-```
-
-The response includes a `token` for protected endpoints.
-
-### Update a user's name
-
-`PATCH /api/users/:id`
-
-Requires a valid JWT. Body:
-
-```json
-{
-  "name": "Alex Morgan"
-}
-```
-
-### Replace a user
-
-`PUT /api/users/:id`
-
-Requires an admin token. All fields are required: `name`, `age`, `address`, `email`, `role`, and `password`. The password is hashed before storage.
-
-### List and delete users
-
-- `GET /api/users` — Requires an admin token; returns users in the `data` array.
-- `DELETE /api/users/:id` — Requires an admin token; deletes the user with that MongoDB `_id`.
-
-## Development scripts
-
-| Command                | Description                   |
-| ---------------------- | ----------------------------- |
-| `npm run dev`          | Start the server with Nodemon |
-| `npm start`            | Start the server              |
-| `npm run format`       | Format files with Prettier    |
-| `npm run format:check` | Check formatting              |
-
-## Technology stack
-
-- **Node.js** and **Express 5** — Runtime and API framework
-- **MongoDB Node.js Driver** — Database access (no Mongoose)
-- **bcrypt** and **jsonwebtoken** — Password hashing and JWT authentication
-- **Joi** — Request validation
-- **dotenv**, **CORS**, **Helmet**, and **Morgan** — Configuration, cross-origin requests, security headers, and logging
+- Node.js and Express 5
+- MongoDB Node.js Driver
+- JSON Web Token (`jsonwebtoken`)
+- bcrypt
+- Joi
+- dotenv, CORS, Helmet, and Morgan
 
 ## Project structure
 
 ```text
-src/
-├── config/        # MongoDB setup and collection names
-├── controllers/   # Authentication and user request handlers
-├── middlewares/   # JWT authentication and request validation
-├── routes/        # Auth, user, and admin route modules
-├── validators/    # Joi schemas
-└── index.js       # Express app setup and server startup
+server/
+├── src/
+│   ├── config/
+│   │   ├── collection.js
+│   │   └── db.js
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   └── userController.js
+│   ├── middlewares/
+│   │   ├── authMiddleware.js
+│   │   └── validate.js
+│   ├── routes/
+│   │   ├── adminRoutes.js
+│   │   ├── authRoutes.js
+│   │   └── userRoutes.js
+│   ├── validators/
+│   │   ├── authValidators.js
+│   │   ├── userFieldValidators.js
+│   │   └── userValidators.js
+│   └── index.js
+├── .env
+├── package.json
+└── README.md
 ```
 
-## Security
+## Prerequisites
 
-- Keep `.env` private and never commit real credentials or JWT secrets.
-- Before deployment, correct the login role assignment: the current login handler issues every token with the `Admin` role.
-- Ensure user-list responses exclude password hashes; the current MongoDB query uses `project` instead of the driver's `projection` option.
-- The name-update route requires a valid token but does not check whether the user owns the requested record.
+- Node.js and npm
+- MongoDB running locally or a MongoDB Atlas connection URI
 
-## MongoDB note
+## Installation
 
-User records are stored in the `users` collection. The MongoDB driver assigns each document an `_id`; use that value in user update and delete requests.
+Run these commands from the `server` directory:
+
+```bash
+npm install
+```
+
+Create a `.env` file in the `server` directory as described below, then start the API:
+
+```bash
+npm run dev
+```
+
+For a regular start without Nodemon:
+
+```bash
+npm start
+```
+
+The API uses `http://localhost:3000` by default. Set `PORT` to change the port.
+
+## Environment configuration
+
+Create a `.env` file in the project root (`server/`):
+
+```dotenv
+PORT=3000
+ADMIN_USERNAME=admin@example.com
+ADMIN_PASSWORD=replace_with_a_secure_password
+MONGODB_URI=mongodb://127.0.0.1:27017
+DATABASE=CRUD1
+JWT_SECRET=replace_with_a_long_random_secret
+```
+
+| Variable         | Purpose                                        |
+| ---------------- | ---------------------------------------------- |
+| `PORT`           | HTTP port; defaults to `3000`                  |
+| `ADMIN_USERNAME` | Username checked by the admin login endpoint   |
+| `ADMIN_PASSWORD` | Password checked by the admin login endpoint   |
+| `MONGODB_URI`    | MongoDB connection URI                         |
+| `DATABASE`       | MongoDB database name                          |
+| `JWT_SECRET`     | Secret used to sign and verify user-login JWTs |
+
+Keep `.env` private and do not commit real credentials or secrets.
+
+## API endpoints
+
+Base URL for local development: `http://localhost:3000`
+
+| Method   | Endpoint               | Access    | Description                                             |
+| -------- | ---------------------- | --------- | ------------------------------------------------------- |
+| `GET`    | `/health`              | Public    | Check server status                                     |
+| `POST`   | `/api/auth/register`   | Public    | Register a user                                         |
+| `POST`   | `/api/admin/login`     | Public    | Check configured admin credentials                      |
+| `POST`   | `/api/users/login`     | Public    | Log in as a user and receive a JWT                      |
+| `GET`    | `/api/admin/users`     | Admin JWT | List users                                              |
+| `PATCH`  | `/api/users/:id`       | Valid JWT | Update a user's name                                    |
+| `PUT`    | `/api/users/:id`       | Valid JWT | Update a user's name, age, address, email, and password |
+| `PUT`    | `/api/admin/users/:id` | Admin JWT | Update a user's name, age, address, email, and password |
+| `DELETE` | `/api/admin/users/:id` | Admin JWT | Delete a user                                           |
+
+Use a MongoDB document's `_id` for `:id` in these paths. It should be a 24-character hexadecimal ObjectId.
+
+## Testing in Postman
+
+For JSON requests, select **Body → raw → JSON** and set `Content-Type: application/json`. For protected routes, select **Authorization → Bearer Token** and paste the JWT returned by user login. The header form is:
+
+```http
+Authorization: Bearer <jwt-token>
+```
+
+### 1. Health check
+
+```http
+GET http://localhost:3000/health
+```
+
+Expected response (`200 OK`):
+
+```json
+{
+  "status": "OK",
+  "message": "The server is running"
+}
+```
+
+### 2. Register a user
+
+```http
+POST http://localhost:3000/api/auth/register
+```
+
+Body:
+
+```json
+{
+  "name": "Jane Doe",
+  "age": 30,
+  "email": "jane@example.com",
+  "address": "123 Main Street",
+  "password": "Abcdef1@",
+  "role": "user"
+}
+```
+
+`name`, `email`, and `password` are required. `age`, `address`, and `role` are optional. The role, when provided, must be `admin` or `user`. Passwords must contain an uppercase letter, a lowercase letter, a number, and a special character from `@$!%*?&`, and must be at least 6 characters long. The name must be 3–50 characters and contain only letters and spaces.
+
+Expected successful response (`200 OK`):
+
+```json
+{
+  "status": "ok",
+  "message": "successfully registered"
+}
+```
+
+Use an email address that is not already registered when trying the request again.
+
+### 3. Admin login
+
+```http
+POST http://localhost:3000/api/admin/login
+```
+
+Body (values must match `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.env`):
+
+```json
+{
+  "username": "admin@example.com",
+  "password": "replace_with_a_secure_password"
+}
+```
+
+This endpoint currently returns a success message but **does not return a JWT**. See [Authentication limitations](#authentication-limitations) before using protected admin routes.
+
+### 4. User login
+
+```http
+POST http://localhost:3000/api/users/login
+```
+
+Body:
+
+```json
+{
+  "email": "jane@example.com",
+  "password": "Abcdef1@"
+}
+```
+
+Expected successful response (`200 OK`):
+
+```json
+{
+  "status": "OK",
+  "message": "login successfully",
+  "token": "<jwt-token>"
+}
+```
+
+Copy `token` to use as the Bearer Token for the protected requests below.
+
+### 5. List all users
+
+```http
+GET http://localhost:3000/api/admin/users
+```
+
+Set Authorization to **Bearer Token** with the token from user login. The response has a `data` array of user documents. Currently, the handler's MongoDB projection is misspelled, so the response may include password hashes; do not expose this endpoint publicly until corrected.
+
+### 6. Update a user's name
+
+Replace `:id` with the user's MongoDB `_id`:
+
+```http
+PATCH http://localhost:3000/api/users/507f1f77bcf86cd799439011
+```
+
+Set Authorization to **Bearer Token**. Body:
+
+```json
+{
+  "name": "Jane Smith"
+}
+```
+
+### 7. Update a user record
+
+Either route below accepts the same required body:
+
+```http
+PUT http://localhost:3000/api/users/507f1f77bcf86cd799439011
+```
+
+or:
+
+```http
+PUT http://localhost:3000/api/admin/users/507f1f77bcf86cd799439011
+```
+
+Set Authorization to **Bearer Token**. Body:
+
+```json
+{
+  "name": "Jane Smith",
+  "age": 31,
+  "email": "jane.smith@example.com",
+  "address": "456 New Street",
+  "password": "NewPassword1@"
+}
+```
+
+The API currently stores the password from this update request without hashing it. Avoid changing passwords through this route until that is fixed.
+
+### 8. Delete a user
+
+```http
+DELETE http://localhost:3000/api/admin/users/507f1f77bcf86cd799439011
+```
+
+Set Authorization to **Bearer Token**. The current validator also requires a JSON body containing the ID:
+
+```json
+{
+  "id": "507f1f77bcf86cd799439011"
+}
+```
+
+Use the same MongoDB `_id` in the path and body.
+
+## Authentication limitations
+
+- User login currently places the `Admin` role in every generated JWT, irrespective of the registered user's role. Consequently, a user-login token currently passes the admin middleware check.
+- Admin login checks the configured credentials but does not issue a JWT. It cannot by itself authenticate calls to admin-protected routes.
+- User-protected update routes accept any valid JWT and do not check that the caller owns the requested record.
+- The user-list handler currently uses the wrong MongoDB projection option and may return password hashes.
+- Full user updates save the supplied password as plain text instead of hashing it.
+
+These behaviors are documented so requests can be tried in Postman, not as a recommendation for production. Do not treat the current role checks as a security boundary or expose this API with real user data until these issues are fixed.
+
+## Validation
+
+Joi validates registration and user update request bodies. Update route IDs are checked as 24-character hexadecimal strings. Validation errors return `400 Bad Request` with a `details` array.
+
+## Development scripts
+
+| Command                | Description                        |
+| ---------------------- | ---------------------------------- |
+| `npm run dev`          | Start the API with Nodemon         |
+| `npm start`            | Start the API with Node.js         |
+| `npm run format`       | Format project files with Prettier |
+| `npm run format:check` | Check formatting with Prettier     |
+
+## License
+
+This project uses the ISC license declared in `package.json`.

@@ -1,11 +1,9 @@
 import { ObjectId } from "mongodb";
-import bcrypt from "bcrypt";
 import collection from "../config/collection.js";
 import { getDB } from "../config/db.js";
 
 // getting all users
 export const getAllUsers = async (req, res) => {
-  console.log("getAllUsers is called");
   try {
     const users = await getDB()
       .collection(collection.USERS_COLLECTION)
@@ -27,8 +25,6 @@ export const getAllUsers = async (req, res) => {
 //update user
 
 export const nameUpdate = async (req, res) => {
-  console.log("partial update called");
-  console.log("req.params.id>>>", req.params.id);
   try {
     const { id } = req.params;
     const user = await getDB()
@@ -51,31 +47,26 @@ export const nameUpdate = async (req, res) => {
 
 //update all
 export const replaceUser = async (req, res) => {
-  console.log("replaceUser update");
-  console.log("req.params.id", req.params.id);
-  console.log("req.body", req.body);
-
   try {
     const { id } = req.params;
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
     const user = await getDB()
       .collection(collection.USERS_COLLECTION)
-      .replaceOne(
+      .updateOne(
         { _id: new ObjectId(id) },
         {
-          name: req.body.name,
-          age: req.body.age,
-          address: req.body.address,
-          email: req.body.email,
-          role: req.body.role,
-          password: hashedPassword,
+          $set: {
+            name: req.body.name,
+            age: req.body.age,
+            address: req.body.address,
+            email: req.body.email,
+            password: req.body.password,
+            updatedAt: new Date(),
+          },
         },
       );
-    //   console.log("user>>>>",user)
-    if (user.matchedCount === 0) {
+    if (!user) {
       throw new Error("user not found");
     }
-    console.log("user>>>>", user);
 
     res.status(200).json({
       status: "OK",
@@ -93,11 +84,12 @@ export const replaceUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await getDB().collection(collection.USERS_COLLECTION).deleteOne({ _id: new ObjectId(id)  });
+    const user = await getDB()
+      .collection(collection.USERS_COLLECTION)
+      .deleteOne({ _id: new ObjectId(id) });
     if (!user) {
       throw new Error("user not found");
     }
-    console.log("user",user)
     res.status(200).json({
       status: "ok",
       data: user,

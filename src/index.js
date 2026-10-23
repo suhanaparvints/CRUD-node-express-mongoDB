@@ -4,14 +4,13 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 
-import { connectDB, getDB } from "./config/db.js";
+import { getDB, connectDB } from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 
 dotenv.config();
-
 await connectDB();
 
 const app = express();
@@ -23,18 +22,18 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
 
-//Routes
-app.use("/api/auth", authRoutes);
-// app.use("/api/admin", adminRoutes);
-app.use("/api/users", userRoutes);
-
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "OK",
-    message: "HomePage health Check Success",
+    message: "The server is running",
   });
 });
 
+//routes
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/users", userRoutes);
+
 app.listen(PORT, () => {
-  console.log(`Server running on ${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
